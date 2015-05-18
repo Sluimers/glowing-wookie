@@ -320,16 +320,44 @@ class OverlapPuzzle(ChessGame):
     def __init__(self, chessboard, pieces):
         super().__init__(chessboard, pieces)
         self.OccupationMap = None
+        self.preValidationOrthoList = None
+        
+    def __preValidatePosition(self, pieces):
+        for i in range(len(pieces)):
+            if self.preValidationOrthoList[i] == True:
+                if pieces[i] == 'Q' or pieces[i] == 'R':
+                    return False
+        return True
         
     def __setOccupationMap(self, positions):
         squaresDimension = self.board.squares.shape
         my, mx = 0, 1  # map inverse
         mapW, mapH = squaresDimension[mx], squaresDimension[my]
         self.OccupationMap = np.zeros((mapW, mapH))
+        
+        occupationXLines = np.full(mapH, -1)
+        occupationYLines = np.full(mapW, -1)
+        
+        self.preValidationOrthoList = [False for i in range(len(positions))]
+        
         for i in range(len(positions)):
             x = positions[i] % mapW
             y = int(positions[i] / mapW)
             self.OccupationMap[x][y] = 1
+            self.__fillOrthoOccupationLine(occupationXLines, x, i)
+            self.__fillOrthoOccupationLine(occupationYLines, y, i)
+            
+               
+    def __fillOrthoOccupationLine(self, occupationLines, l, i):
+        occupationLine = occupationLines[l]
+        if occupationLine == -1:
+            occupationLine = i
+        elif occupationLine == -2:
+            self.PreValidationOrthoList[i] = True
+        else:
+            self.PreValidationOrthoList[occupationLine] = True
+            self.PreValidationOrthoList[i] = True
+            occupationLines[l] = -2
         
     def __validatePosition_full_board(self, piececombinations):
         boardSquares = self.board.squares
@@ -428,8 +456,9 @@ class OverlapPuzzle(ChessGame):
             for i in piece_position_combinations:
                 self.__setOccupationMap(i)
                 for j in piece_type_combinations:
-                    if self.__validatePosition(i,j):
-                        self.printPosition(i, j)
+                    if self.__preValidatePosition(j):
+                        if self.__validatePosition(i,j):
+                            self.printPosition(i, j)
         else:
             #TODO: test this part
             piece_combinations_full_board = set([])
